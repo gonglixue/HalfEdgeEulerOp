@@ -10,8 +10,8 @@ private:
     std::vector<Face *> faces_;
     Solid* brep_solid_;
 
-    void IncreaseSolidVertex(){this->brep_solid_->num_vertex_++;};
-    void IncreaseSolidFace(){this->brep_solid_->num_face_++;};
+    void IncreaseSolidVertex(){this->brep_solid_->num_vertex_++;}
+    void IncreaseSolidFace(){this->brep_solid_->num_face_++;}
     void IncreaseSolidLoop(){this->brep_solid_->num_face_++;}
 public:
     EulerBrep();

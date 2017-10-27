@@ -47,7 +47,7 @@ struct Loop
 struct Face
 {
     int face_id_;
-    Solid *solid_; // the solid this face belongs to
+    Solid *solid_; // the solid this face belongs to? neccessary?
 
     Face* prev_face_;
     Face* next_face_;
