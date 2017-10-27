@@ -11,60 +11,87 @@ struct Vertex;
 
 struct Solid
 {
-    int solid_id;
-    Face *faces; // all the faces belong to this slid
+    int solid_id_;
+    Face *faces_; // all the faces belong to this slid
+    Loop *loops_;
+    Vertex *vertices_;
+    Edge *edges_;
 
-    Solid *next_solid;
-    Solid *prev_solid;
+    Solid *next_solid_;
+    Solid *prev_solid_;
 
-    int num_vertex;
+    int num_vertex_;
+    int num_face_;
+    int num_loop_;
+
+    Solid(){
+        num_vertex_ = num_face_ = num_loop_ = 0;
+        faces_ = vertices_ = edges_ = NULL;
+        loops_ = NULL;
+    }
+};
+
+struct Loop
+{
+    int loop_id_;
+    HalfEdge *halfedges_;
+    Face *face_;  // the face that constructed by this loop, only one?
+
+    Loop *next_loop_;
+    Loop *pre_loop_;
+
+    Loop():loop_id_(0), halfedges_(NULL), face_(NULL), next_loop_(NULL),
+        pre_loop_(NULL){}
 };
 
 struct Face
 {
-    int face_id;
-    Solid *solid; // the solid this face belongs to
+    int face_id_;
+    Solid *solid_; // the solid this face belongs to
 
-    Face* prev_face;
-    Face* next_face;
+    Face* prev_face_;
+    Face* next_face_;
 
-    Loop* loops;
+    Loop* outer_loop_;
+    Loop* inner_loop_;
+
 };
 
 struct HalfEdge
 {
-    Loop* loop;
-    Edge* phy_e;
+    Loop* loop_;
+    Edge* phy_e_;
 
-    HalfEdge* next_he;
-    HalfEdge* prev_he;
-    HalfEdge* sym_he;
+    HalfEdge* next_he_;
+    HalfEdge* prev_he_;
+    HalfEdge* sym_he_;
 
-    Vertex* start_v;
+    Vertex* start_v_;
 
 };
 
 struct Vertex
 {
-    int vertex_id;
-    QVector3D position;
+    int vertex_id_;
+    QVector3D position_;
 
-    Vertex* next_v;
-    Vertex* prev_v;
+    Vertex* next_v_;
+    Vertex* prev_v_;
 
-    Vertex(float x, float y, float z):next_v(NULL), prev_v(NULL)
+    Vertex(float x, float y, float z):next_v_(NULL), prev_v_(NULL)
     {
-        position = QVector3D(x,y,z);
+        position_ = QVector3D(x,y,z);
+        next_v_ = prev_v_ = NULL;
     }
 };
 
 struct Edge
 {
-    HalfEdge* he1;
-    HalfEdge* he2;  // he2 = he1->sym_he
+    HalfEdge* he1_;
+    HalfEdge* he2_;  // he2 = he1->sym_he
 
-    Edge* prev_edge;
-    Edge* next_edge;
+    Edge* prev_edge_;
+    Edge* next_edge_;
 };
 
 #endif // MODEL_H

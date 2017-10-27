@@ -25,11 +25,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    eulerbrep.cpp
 
 HEADERS += \
         mainwindow.h \
-    model.h
+    model.h \
+    eulerbrep.h
 
 FORMS += \
         mainwindow.ui
