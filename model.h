@@ -2,6 +2,8 @@
 #define MODEL_H
 #include <QVector3D>
 
+#define EPS 0.00001
+
 struct Solid;
 struct Face;
 struct Loop;
@@ -106,7 +108,19 @@ struct Solid
         }
         return temp_edge;
     }
+    // 找到给定点
+    Vertex* FindVertex(float x, float y, float z)
+    {
+        Vertex* temp_vertex = this->vertices_;
+        while(!temp_vertex)
+        {
+            if(temp_vertex->EqualTo(x, y, z))
+                return temp_vertex;
 
+            temp_vertex = temp_vertex->next_v_;
+        }
+        return NULL;
+    }
 };
 
 // Loop
@@ -280,6 +294,15 @@ struct Vertex
     void SetPosition(float x, float y, float z)
     {
         position_ = QVector3D(x,y,z);
+    }
+    bool EqualTo(float x, float y, float z)
+    {
+        QVector3D comp_vert = QVector3D(x, y, z);
+        float dist = position_.distanceToPoint(comp_vert);
+        if(dist < EPS)
+            return true;
+
+        return false;
     }
 };
 
