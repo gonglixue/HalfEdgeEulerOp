@@ -20,6 +20,10 @@ public:
     Loop* mef(float x1, float y1, float z1,
               float x2, float y2, float z2,
               Loop* loop);
+    Loop* kemr(float x1, float y1, float z1,
+               float x2, float y2, float z2,
+               Loop* loop);
+    Loop* kemr(HalfEdge* bridge_he, Loop* loop);
 };
 
 #endif // EULERBREP_H

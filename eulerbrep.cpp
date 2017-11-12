@@ -155,9 +155,74 @@ Loop* EulerBrep::mef(float x1, float y1, float z1,
     he1->sym_he_ = he2;
     he2->sym_he_ = he1;
 
-    new_face->AddLoop(inner_loop);  // 一个loop对应一个面？？？
+    new_face->AddLoop(inner_loop);  //??
+    // 此前是没有face的？
     solid->AddFace(new_face);
 
     return inner_loop;
 
+}
+
+Loop* EulerBrep::kemr(HalfEdge *bridge_he1, Loop *loop)
+{
+    HalfEdge* bridge_he2 = bridge_he1->sym_he_;
+    Loop* new_loop = new Loop; //所产生的新环
+
+    // 把内边界的halfedge加到新环里
+    new_loop->AddHalfEdge(bridge_he1->next_he_);
+    HalfEdge* temp_he = bridge_he1->next_he_->next_he_;
+    while(temp_he)
+    {
+        if(temp_he == bridge_he2)
+            break;
+        temp_he->loop_ = new_loop;
+        temp_he = temp_he->next_he_;
+    }
+    bridge_he1->next_he_->prev_he_ = bridge_he1->prev_he_;
+    bridge_he2->prev_he_->next_he_ = bridge_he1->next_he_;
+
+    // 面添加一个inner loop
+    loop->face_->AddLoop(new_loop);
+    loop->halfedges_ = bridge_he1->prev_he_;
+
+    // 重新闭合外环
+    bridge_he1->prev_he_->next_he_ = bridge_he2->next_he_;
+    bridge_he2->next_he_->prev_he_ = bridge_he1->prev_he_;
+
+    Solid* solid = loop->face_->solid_;
+    Edge* edge = solid->edges_;
+    // 找到给定半边对应的物理边
+    while(edge)
+    {
+        if(edge->he1_==bridge_he1 || edge->he2_==bridge_he2)
+            break;
+        edge = edge->next_edge_;
+    }
+    // 下面删除这条物理边
+    // 如果给定的边是链表的中间节点
+    if(edge->next_edge_ && edge->prev_edge_)
+    {
+        edge->next_edge_->prev_edge_ = edge->prev_edge_;
+        edge->prev_edge_->next_edge_ = edge->next_edge_;
+    }
+    // 如果给定边是最后一个节点
+    else if(!edge->next_edge_ && edge->prev_edge_)
+    {
+        edge->prev_edge_->next_edge_ = NULL;
+    }
+    else if(edge->next_edge_ && !edge->prev_edge_)
+    {
+        edge->next_edge_->prev_edge_ = NULL;
+        solid->edges_ = edge->next_edge_;
+    }
+    // 只有该边（可能发生吗？）
+    else{
+        solid->edges_ = NULL;
+    }
+
+    delete edge;
+    delete he1;
+    delete he2;
+
+    return new_loop;
 }
