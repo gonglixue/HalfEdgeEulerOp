@@ -19,6 +19,10 @@ Solid* EulerBrep::mvfs(float x, float y, float z)
 
     return solid;
 }
+Solid* EulerBrep::mvfs(QVector3D &v)
+{
+    return mvfs(v.x(), v.y(), v.z());
+}
 
 HalfEdge* EulerBrep::mev(float x1, float y1, float z1,
                          float x2, float y2, float z2,
@@ -316,4 +320,20 @@ void EulerBrep::sweep(Face* face, float x, float y, float z)
             }
         }
     }
+}
+
+void EulerBrep::Test()
+{
+
+    QVector3D vertices_outer[4] = {QVector3D(0.0, 0.0, 0.0), QVector3D(3.0, 0.0, 0.0), QVector3D(3.0, 3.0, 0.0), QVector3D(0.0, 3.0, 0.0)};
+    QVector3D vertices_inner[4] = {QVector3D(1.0, 1.0, 0.0), QVector3D(2.0, 1.0, 0.0), QVector3D(2.0, 2.0, 0.0), QVector3D(1.0, 2.0, 0.0)};
+
+    // 创建第一个点
+    brep_solid_ = this->mvfs(vertices_outer[0]);
+
+}
+
+void EulerBrep::clean()
+{
+
 }

@@ -3,21 +3,21 @@
 #include <vector>
 #include <iostream>
 #include "solid.h"
+#include <QVector3D>
 
 class EulerBrep
 {
 private:
-    std::vector<Vertex *> vertices_;
-    std::vector<Loop *> loops_;
-    std::vector<Face *> faces_;
+//    std::vector<Vertex *> vertices_;
+//    std::vector<Loop *> loops_;
+//    std::vector<Face *> faces_;
     Solid* brep_solid_;
 
-    void IncreaseSolidVertex(){this->brep_solid_->num_vertex_++;}
-    void IncreaseSolidFace(){this->brep_solid_->num_face_++;}
-    void IncreaseSolidLoop(){this->brep_solid_->num_face_++;}
+    clean();
 public:
     EulerBrep();
     Solid* mvfs(float x, float y, float z);
+    Solid* mvfs(QVector3D& v);
     HalfEdge* mev(float x1, float y1, float z1, float x2, float y2, float z2, Loop* loop);
     HalfEdge* mev(const QVector3D& p1, const QVector3D& p2, Loop* loop);
     Loop* mef(float x1, float y1, float z1,
@@ -29,6 +29,8 @@ public:
                Loop* loop);
     Loop* kemr(HalfEdge* bridge_he, Loop* loop);
     void sweep(Face* face, float x, float y, float z);
+
+    void Test();
 };
 
 #endif // EULERBREP_H
