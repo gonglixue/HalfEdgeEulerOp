@@ -81,10 +81,17 @@ HalfEdge* EulerBrep::mev(float x1, float y1, float z1,
     }
 
     solid->AddEdge(edge);
-    solid->AddVertex(vertex);
+    solid->AddVertex(new_vertex);
 
     return he1;
 
+}
+
+HalfEdge* EulerBrep::mev(const QVector3D &p1, const QVector3D &p2, Loop *loop)
+{
+    return mev(p1.x(), p1.y(), p1.z(),
+        p2.x(), p2.y(), p2.z(),
+        loop);
 }
 
 // 给定点是有顺序的？
@@ -163,10 +170,20 @@ Loop* EulerBrep::mef(float x1, float y1, float z1,
 
 }
 
+Loop* EulerBrep::mef(QVector3D &v1, QVector3D &v2, Loop *loop)
+{
+    return mef(v1.x(), v1.y(), v1.z(),
+               v2.x(), v2.y(), v2.z(),
+               loop);
+}
+
 Loop* EulerBrep::kemr(HalfEdge *bridge_he1, Loop *loop)
 {
     HalfEdge* bridge_he2 = bridge_he1->sym_he_;
     Loop* new_loop = new Loop; //所产生的新环
+
+    // 如果给定loop上只有he1 he2，是不能删除的它的
+    // ...
 
     // 把内边界的halfedge加到新环里
     new_loop->AddHalfEdge(bridge_he1->next_he_);
@@ -221,8 +238,82 @@ Loop* EulerBrep::kemr(HalfEdge *bridge_he1, Loop *loop)
     }
 
     delete edge;
-    delete he1;
-    delete he2;
+    delete bridge_he1;
+    delete bridge_he2;
 
     return new_loop;
+}
+
+Loop* EulerBrep::kemr(float x1, float y1, float z1, float x2, float y2, float z2, Loop *loop)
+{
+    Solid* solid = loop->face_->solid_;
+    Vertex* v1 = solid->FindVertex(x1, y1, z1);
+    Vertex* v2 = solid->FindVertex(x2, y2, z2);
+    if(!v1 || !v2)
+    {
+        std::cout<< "Error in EulerBrep::Kemr(2)::can not find the given point\n";
+        exit(1);
+    }
+    // 给定的点要在同一环上 ？ 这个判断必要吗？
+    // 找到要删除的那个桥边(v1为起点，v2为终点）
+    HalfEdge *he = loop->halfedges_;
+    while(he)
+    {
+        if(he->start_v_==v1 && he->next_he_->start_v_==v2)
+        {
+            break;
+        }
+        he = he->next_he_;
+    }
+    if(!he)
+    {
+        std::cout<<"Error in EulerBrep::kemr(2)::can not find bridge half edge with given point\n";
+        exit(1);
+    }
+    else{
+        kemr(he, loop);
+    }
+}
+
+
+//  x, y, z是扫成的方向偏量
+void EulerBrep::sweep(Face* face, float x, float y, float z)
+{
+    QVector3D v1, v2, first, last;
+    for(Loop* temp_loop = face->loop_; temp_loop!=NULL; temp_loop=temp_loop->next_loop_)
+    {
+        // 记录当前半边，和前后两个半边
+        HalfEdge *temp_he = temp_loop->halfedges_;
+        HalfEdge *next_he = temp_he->next_he_;
+        HalfEdge *prev_he = temp_he->prev_he_;
+        Vertex* vertex = temp_he->start_v_;  // 当前半边的起点
+
+        v1 = vertex->position_;
+        first = last = v2 = v1 + QVector3D(x, y, z);
+        if(temp_he == prev_he)
+            temp_he = NULL;  // ？？ 说明这个环只有一对halfedge
+        else{
+            temp_he = prev_he;
+            prev_he = temp_he->next_he_;
+        }
+        while(temp_he)  // 对环上的每个half edge的起点进行偏移
+        {
+            Vertex* vertex = temp_he->start_v_;
+            v1 = vertex->position_;     // 原来的点坐标
+            v2 = v1 + QVector3D(x, y, z);  // 平移后的点
+
+            mev(v1, v2, temp_loop);  // 在原来的点和新的点之间连一条边
+            // 创建一个新的扫成侧面
+            mef(last, v2, temp_loop);
+            if(temp_he == prev_he)
+            {
+                mef(last, first, temp_loop);
+                temp_he = NULL;
+            }
+            else{
+                temp_he = next_he;
+                next_he = temp_he->next_he_;
+            }
+        }
+    }
 }
