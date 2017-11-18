@@ -139,7 +139,7 @@ Loop* EulerBrep::mef(float x1, float y1, float z1,
             break;
         temp_he->loop_ = inner_loop;
         temp_he = temp_he->next_he_;
-    }
+    } //找以v2为终点的边
 
     // 把新的halfedge he1 he2加入对应的halfedge链表中
     // 把he2加入内环中
@@ -327,9 +327,36 @@ void EulerBrep::Test()
 
     QVector3D vertices_outer[4] = {QVector3D(0.0, 0.0, 0.0), QVector3D(3.0, 0.0, 0.0), QVector3D(3.0, 3.0, 0.0), QVector3D(0.0, 3.0, 0.0)};
     QVector3D vertices_inner[4] = {QVector3D(1.0, 1.0, 0.0), QVector3D(2.0, 1.0, 0.0), QVector3D(2.0, 2.0, 0.0), QVector3D(1.0, 2.0, 0.0)};
-
-    // 创建第一个点
+    QVector3D cube_vertices[8] = {
+        QVector3D(0,0,0),
+        QVector3D(3,0,0),
+        QVector3D(3,3,0),
+        QVector3D(0,3,0),
+        QVector3D(0,0,3),
+        QVector3D(3,0,3),
+        QVector3D(3,3,3),
+        QVector3D(0,3,3)
+    };
+    // 创建第一个点, 以及生成一个大环，这个大环在一开始时并无特殊含义. mef之后产生的环才是组成这个面的环
     brep_solid_ = this->mvfs(vertices_outer[0]);
+    Loop* big_loop = brep_solid_->faces_->loop_;
+    // 后面
+    mev(cube_vertices[0], cube_vertices[1], big_loop);
+    mev(cube_vertices[1], cube_vertices[2], big_loop);
+    mev(cube_vertices[2], cube_vertices[3], big_loop);
+    mef(cube_vertices[3], cube_vertices[0], big_loop);
+    // 底面
+    mev(cube_vertices[0], cube_vertices[4], big_loop);
+    mev(cube_vertices[1], cube_vertices[5], big_loop);
+    mef(cube_vertices[4], cube_vertices[5], big_loop);
+    // right
+    mev(cube_vertices[2], cube_vertices[6], big_loop);
+    mef(cube_vertices[5], cube_vertices[6], big_loop);
+    // left
+    mev(cube_vertices[3], cube_vertices[7], big_loop);
+    mef(cube_vertices[6], cube_vertices[7], big_loop);
+
+    mef(cube_vertices[7], cube_vertices[4], big_loop);
 
 }
 

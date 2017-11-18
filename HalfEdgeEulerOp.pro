@@ -32,7 +32,10 @@ SOURCES += \
     face.cpp \
     loop.cpp \
     edge.cpp \
-    halfedge.cpp
+    halfedge.cpp \
+    myopenglwidget.cpp \
+    trimesh.cpp \
+    mycamera.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -42,7 +45,10 @@ HEADERS += \
     face.h \
     loop.h \
     edge.h \
-    halfedge.h
+    halfedge.h \
+    myopenglwidget.h \
+    trimesh.h \
+    mycamera.h
 
 FORMS += \
         mainwindow.ui

@@ -13,7 +13,7 @@ private:
 //    std::vector<Face *> faces_;
     Solid* brep_solid_;
 
-    clean();
+    void clean();
 public:
     EulerBrep();
     Solid* mvfs(float x, float y, float z);
