@@ -18,13 +18,18 @@ bool Solid::AddFace(Face *new_face)
         return false;
 
     new_face->solid_ = this;
-    if(this->faces_ == NULL)
+    Face* temp_face = this->faces_;  //从这里开始face链表头指针被改变？不知道为什么？
+
+    if(!temp_face)
         this->faces_ = new_face;
     else
     {
-        Face* temp_face = this->faces_;
-        while(temp_face->next_face_)
+
+        while(temp_face->next_face_ != NULL){
             temp_face = temp_face->next_face_;
+            int debug_id = temp_face->face_id_;
+            printf("debug id%d\n", debug_id);
+        }
 
         temp_face->next_face_ = new_face;
         new_face->prev_face_ = temp_face;
@@ -42,6 +47,7 @@ bool Solid::AddEdge(Edge *new_edge)
     else
     {
         Edge* temp_edge = this->edges_;
+
         while(temp_edge->next_edge_)
             temp_edge = temp_edge->next_edge_;
         temp_edge->next_edge_ = new_edge;
