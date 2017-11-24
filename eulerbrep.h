@@ -11,7 +11,7 @@ private:
 //    std::vector<Vertex *> vertices_;
 //    std::vector<Loop *> loops_;
 //    std::vector<Face *> faces_;
-    Solid* brep_solid_;
+
 
     void clean();
 public:
@@ -31,6 +31,8 @@ public:
     void sweep(Face* face, float x, float y, float z);
 
     void Test();
+
+    Solid* brep_solid_;
 };
 
 #endif // EULERBREP_H

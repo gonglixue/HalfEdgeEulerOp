@@ -33,8 +33,6 @@ SOURCES += \
     loop.cpp \
     edge.cpp \
     halfedge.cpp \
-    myopenglwidget.cpp \
-    trimesh.cpp \
     mycamera.cpp \
     myfixedglwidget.cpp
 
@@ -47,12 +45,10 @@ HEADERS += \
     loop.h \
     edge.h \
     halfedge.h \
-    myopenglwidget.h \
-    trimesh.h \
     mycamera.h \
     myfixedglwidget.h
 
 FORMS += \
         mainwindow.ui
 
-LIBS += -lopengl32
+LIBS += -lopengl32 -lglu32
