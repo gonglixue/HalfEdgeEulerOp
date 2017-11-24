@@ -87,6 +87,7 @@ HalfEdge* EulerBrep::mev(float x1, float y1, float z1,
     solid->AddEdge(edge);
     solid->AddVertex(new_vertex);
 
+    std::cout << "success make he: given("<<x1<<","<<y1<<","<<z1<<")"<<" and new ("<<x2<<","<<y2<<","<<z2<<")\n";
     return he1;
 
 }
@@ -358,6 +359,7 @@ void EulerBrep::Test()
 
     mef(cube_vertices[7], cube_vertices[4], big_loop);
 
+    std::cout << "brep::Test() finish.\n";
 }
 
 void EulerBrep::clean()

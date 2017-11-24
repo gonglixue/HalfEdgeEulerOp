@@ -38,6 +38,7 @@ MyFixedGLWidget::MyFixedGLWidget(QWidget *parent)
 {
     tess_obj_ = gluNewTess();
     ConstructBrep("");
+    qDebug() << "MyFixedGLWidget::Constructor";
 }
 
 MyFixedGLWidget::~MyFixedGLWidget()
@@ -47,7 +48,7 @@ MyFixedGLWidget::~MyFixedGLWidget()
 
 void MyFixedGLWidget::ConstructBrep(QString brep_file_path)
 {
-#ifdef DIRECT_TEST
+#ifndef DIRECT_TEST
     brep_.Test();
 #endif
 }
@@ -59,7 +60,7 @@ QSize MyFixedGLWidget::minimumSizeHint() const
 
 QSize MyFixedGLWidget::sizeHint() const
 {
-    return QSize(400, 400);
+    return QSize(512, 512);
 }
 
 void MyFixedGLWidget::initializeGL()
@@ -143,8 +144,12 @@ void MyFixedGLWidget::draw()
     qglColor(Qt::red);
     Face* faces = brep_.brep_solid_->faces_;
     int index = 0;
-    // begin
+    if(!faces)
+    {
+        std::cout << "MyFixedGLWidget::draw(): there is no faces to draw\n";
+    }
 
+    // begin
     while (faces) {
         gluTessBeginPolygon(tess_obj_, NULL);
         Loop* temp_loop = faces->loop_;

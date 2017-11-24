@@ -1,4 +1,4 @@
-#include "solid.h"
+﻿#include "solid.h"
 
 Solid::Solid()
 {
@@ -41,7 +41,7 @@ bool Solid::AddEdge(Edge *new_edge)
         this->edges_ = new_edge;
     else
     {
-        Edge* temp_edge;
+        Edge* temp_edge = this->edges_;
         while(temp_edge->next_edge_)
             temp_edge = temp_edge->next_edge_;
         temp_edge->next_edge_ = new_edge;
@@ -89,10 +89,15 @@ Edge* Solid::FindEdge(Vertex* v1, Vertex* v2)
 Vertex* Solid::FindVertex(float x, float y, float z)
 {
     Vertex* temp_vertex = this->vertices_;
-    while(!temp_vertex)
+    Vertex* first_vertex = this->vertices_;
+    while(temp_vertex)
     {
+
         if(temp_vertex->EqualTo(x, y, z))
             return temp_vertex;
+
+        if(temp_vertex->next_v_ == first_vertex)  // 最后一个还未找到
+            break;
 
         temp_vertex = temp_vertex->next_v_;
     }

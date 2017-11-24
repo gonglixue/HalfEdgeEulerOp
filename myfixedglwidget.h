@@ -5,6 +5,7 @@
 #include <QString>
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <QDebug>
 #include "eulerbrep.h"
 
 class MyFixedGLWidget:public QGLWidget
