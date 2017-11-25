@@ -16,8 +16,12 @@ public:
     void ConstructBrep(QString brep_file_path);
     ~MyFixedGLWidget();
 signals:
+    void xRotationChanged(float angle);
+    void yRotationChanged(float angle);
 
 public slots:
+    void setXRotation(float angle);
+    void setYRotation(float angle);
 
 protected:
     void initializeGL();
@@ -31,6 +35,7 @@ protected:
 
 private:
     void draw();
+    void drawTest();
     QPoint last_pos_;
 
     EulerBrep brep_;

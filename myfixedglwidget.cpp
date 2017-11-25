@@ -65,17 +65,17 @@ QSize MyFixedGLWidget::sizeHint() const
 
 void MyFixedGLWidget::initializeGL()
 {
-    qglClearColor(Qt::black);
+    qglClearColor(Qt::white);
+
 
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
-    // 光源位置
-    static GLfloat light_position[4] = {0, 0, 10, 1.0};
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+
 
     // 初始化tessa
     gluTessCallback(tess_obj_, GLU_TESS_VERTEX, (void(CALLBACK *)())vertexCallback);
@@ -90,18 +90,23 @@ void MyFixedGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glFrontFace(GL_CCW); // 逆时针顶点顺序为正面
+    //glFrontFace(GL_CW);
 
     glLoadIdentity();
 
-    glPushMatrix();
+    //glPushMatrix();
+    glTranslatef(0.0, 0.0, -3.0);
     glRotatef(x_rot_, 1.0f, 0.0f, 0.0f);
-    glRotatef(y_rot_, 1.0f, 0.0f, 0.0f);
-    glRotatef(z_rot_, 1.0f, 0.0f, 0.0f);
-    glPopMatrix();
+    glRotatef(y_rot_, 0.0f, 1.0f, 0.0f);
+    glRotatef(z_rot_, 0.0f, 0.0f, 1.0f);
 
+   //glPopMatrix();
+    // 光源位置
+    static GLfloat light_position[4] = {2, 2, 2, 1.0};
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     draw();
 
-    glFlush();
+    //glFlush();
 
 }
 
@@ -113,13 +118,13 @@ void MyFixedGLWidget::resizeGL(int width, int height)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 #ifdef QT_OPENGL_ES_1
-    glOrthof(-2, +2, -2, +2, 1.0, 15.0);
+    glOrthof(-5, +5, -5, +5, 0.10, 15.0);
 #else
-    glOrtho(-2, +2, -2, +2, 1.0, 15.0);
+    glOrtho(-5, +5, -5, +5, 0.10, 15.0);
 #endif
 
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    //glLoadIdentity();
 }
 
 void MyFixedGLWidget::mousePressEvent(QMouseEvent *event)
@@ -132,7 +137,8 @@ void MyFixedGLWidget::mouseMoveEvent(QMouseEvent *event)
     int dx = event->x() - last_pos_.x();
     int dy = event->y() - last_pos_.y();
     if(event->buttons() & Qt::LeftButton){
-
+        setXRotation(x_rot_ + 8*dy);
+        setYRotation(y_rot_ + 8*dx);
     }
 
 
@@ -141,7 +147,7 @@ void MyFixedGLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void MyFixedGLWidget::draw()
 {
-    qglColor(Qt::red);
+    //qglColor(Qt::red);
     Face* faces = brep_.brep_solid_->faces_;
     int index = 0;
     if(!faces)
@@ -157,6 +163,11 @@ void MyFixedGLWidget::draw()
         // 遍历loop上的每个点
         while(temp_loop)
         {
+//            int rand_r = 255 * rand()/RAND_MAX;
+//            int rand_g = 255 * rand()/RAND_MAX;
+//            int rand_b = 255 * rand()/RAND_MAX;
+//            glColor3b(rand_r, rand_g, rand_b);
+            glColor3b(255, 0, 0);
             HalfEdge* half_edge = temp_loop->halfedges_;
             Vertex* start_v = half_edge->start_v_;
             gluTessBeginContour(tess_obj_);
@@ -177,5 +188,68 @@ void MyFixedGLWidget::draw()
         index++;
     }
 }
+
+void MyFixedGLWidget::drawTest()
+{
+    qDebug() << "draw";
+    glColor3b(255, 0, 0);
+    glBegin(GL_QUADS);
+        glNormal3f(0,0,-1);
+        glVertex3f(-1,-1,0);
+        glVertex3f(-1,1,0);
+        glVertex3f(1,1,0);
+        glVertex3f(1,-1,0);
+
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glNormal3f(0,-1,0.707);
+        glVertex3f(-1,-1,0);
+        glVertex3f(1,-1,0);
+        glVertex3f(0,0,1.2);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glNormal3f(1,0, 0.707);
+        glVertex3f(1,-1,0);
+        glVertex3f(1,1,0);
+        glVertex3f(0,0,1.2);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glNormal3f(0,1,0.707);
+        glVertex3f(1,1,0);
+        glVertex3f(-1,1,0);
+        glVertex3f(0,0,1.2);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glNormal3f(-1,0,0.707);
+        glVertex3f(-1,1,0);
+        glVertex3f(-1,-1,0);
+        glVertex3f(0,0,1.2);
+    glEnd();
+}
+
+static void qNormalizeAngle(float &angle)
+{
+    while (angle < 0)
+        angle += 360 * 16;
+    while (angle > 360)
+        angle -= 360 * 16;
+}
+
+void MyFixedGLWidget::setXRotation(float angle)
+{
+    qNormalizeAngle(angle);
+    x_rot_ = angle;
+    emit xRotationChanged(angle);
+    updateGL();
+}
+
+void MyFixedGLWidget::setYRotation(float angle)
+{
+    qNormalizeAngle(angle);
+    y_rot_ = angle;
+    emit yRotationChanged(angle);
+    updateGL();
+}
+
 
 
