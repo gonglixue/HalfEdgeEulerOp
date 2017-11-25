@@ -74,6 +74,13 @@ void MyFixedGLWidget::initializeGL()
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
+    // 光照模型
+    GLfloat light_ambient [] = { 0.0, 0.0, 0.0, 1.0 };
+    GLfloat light_diffuse [] = { 0.8, 0.8, 0.8, 1.0 };
+    GLfloat light_specular[] = { 0.2, 0.2, 0.2, 1.0 };
+    glLightfv(GL_LIGHT0, GL_AMBIENT , light_ambient );
+    glLightfv(GL_LIGHT0, GL_DIFFUSE , light_diffuse );
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 
 
 
@@ -92,20 +99,19 @@ void MyFixedGLWidget::paintGL()
     glFrontFace(GL_CCW); // 逆时针顶点顺序为正面
     //glFrontFace(GL_CW);
 
-    glLoadIdentity();
+    //glLoadIdentity();
 
-    //glPushMatrix();
-    glTranslatef(0.0, 0.0, -3.0);
+    glPushMatrix();
+    glTranslatef(-1, -1, -3.0);
     glRotatef(x_rot_, 1.0f, 0.0f, 0.0f);
     glRotatef(y_rot_, 0.0f, 1.0f, 0.0f);
     glRotatef(z_rot_, 0.0f, 0.0f, 1.0f);
 
-   //glPopMatrix();
     // 光源位置
     static GLfloat light_position[4] = {2, 2, 2, 1.0};
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     draw();
-
+    glPopMatrix();
     //glFlush();
 
 }
@@ -117,14 +123,17 @@ void MyFixedGLWidget::resizeGL(int width, int height)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-#ifdef QT_OPENGL_ES_1
+#ifdef ORTHO_PROJECT
     glOrthof(-5, +5, -5, +5, 0.10, 15.0);
 #else
-    glOrtho(-5, +5, -5, +5, 0.10, 15.0);
+    float aspect = (float)width/height;
+    gluPerspective(45.0f, aspect, 0.1, 100);
 #endif
 
     glMatrixMode(GL_MODELVIEW);
-    //glLoadIdentity();
+    glLoadIdentity();
+    gluLookAt(0, 0, -15, 0, 0, 0, 0, 1, 0);
+
 }
 
 void MyFixedGLWidget::mousePressEvent(QMouseEvent *event)

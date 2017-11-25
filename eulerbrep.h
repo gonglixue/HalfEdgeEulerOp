@@ -31,6 +31,7 @@ public:
     void sweep(Face* face, float x, float y, float z);
 
     void Test();
+    void TestWithTwoHandle();
 
     Solid* brep_solid_;
 };
