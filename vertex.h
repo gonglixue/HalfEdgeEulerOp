@@ -1,4 +1,4 @@
-#ifndef VERTEX_H
+﻿#ifndef VERTEX_H
 #define VERTEX_H
 #define EPS 0.00001
 
@@ -13,6 +13,7 @@ public:
 
     int vertex_id_;
     QVector3D position_;
+    double pos_dp_[3];
 
     Vertex* next_v_;
     Vertex* prev_v_;

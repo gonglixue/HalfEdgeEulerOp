@@ -87,6 +87,7 @@ HalfEdge* EulerBrep::mev(float x1, float y1, float z1,
     solid->AddEdge(edge);
     solid->AddVertex(new_vertex);
 
+    std::cout << "success make he: given("<<x1<<","<<y1<<","<<z1<<")"<<" and new ("<<x2<<","<<y2<<","<<z2<<")\n";
     return he1;
 
 }
@@ -329,13 +330,13 @@ void EulerBrep::Test()
     QVector3D vertices_inner[4] = {QVector3D(1.0, 1.0, 0.0), QVector3D(2.0, 1.0, 0.0), QVector3D(2.0, 2.0, 0.0), QVector3D(1.0, 2.0, 0.0)};
     QVector3D cube_vertices[8] = {
         QVector3D(0,0,0),
-        QVector3D(3,0,0),
-        QVector3D(3,3,0),
-        QVector3D(0,3,0),
-        QVector3D(0,0,3),
-        QVector3D(3,0,3),
-        QVector3D(3,3,3),
-        QVector3D(0,3,3)
+        QVector3D(1.5,0,0),
+        QVector3D(1.5,1.5,0),
+        QVector3D(0,1.5,0),
+        QVector3D(0,0,1.5),
+        QVector3D(1.5,0,1.5),
+        QVector3D(1.5,1.5,1.5),
+        QVector3D(0,1.5,1.5)
     };
     // 创建第一个点, 以及生成一个大环，这个大环在一开始时并无特殊含义. mef之后产生的环才是组成这个面的环
     brep_solid_ = this->mvfs(vertices_outer[0]);
@@ -358,6 +359,7 @@ void EulerBrep::Test()
 
     mef(cube_vertices[7], cube_vertices[4], big_loop);
 
+    std::cout << "brep::Test() finish.\n";
 }
 
 void EulerBrep::clean()

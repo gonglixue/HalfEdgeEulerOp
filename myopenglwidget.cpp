@@ -1,4 +1,4 @@
-#include "myopenglwidget.h"
+﻿#include "myopenglwidget.h"
 #include <math.h>
 
 MyOpenGLWidget::MyOpenGLWidget(QWidget *parent) : QOpenGLWidget(parent),
@@ -13,5 +13,8 @@ MyOpenGLWidget::MyOpenGLWidget(QWidget *parent) : QOpenGLWidget(parent),
 
 void MyOpenGLWidget::ConstructBrep(QString brep_file_path)
 {
+#ifdef DIRECT_TEST
+    euler_.Test();
 
+#endif
 }
