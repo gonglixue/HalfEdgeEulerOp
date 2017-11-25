@@ -280,6 +280,40 @@ Loop* EulerBrep::kemr(float x1, float y1, float z1, float x2, float y2, float z2
     }
 }
 
+Loop* EulerBrep::kemr(QVector3D &v1, QVector3D &v2, Loop *loop)
+{
+    return kemr(v1.x(), v1.y(), v1.z(),
+                v2.x(), v2.y(), v2.z(),
+                loop);
+}
+
+// 删除一个面，把内环加到外环所在的面上
+void EulerBrep::kfmrh(Loop *outter_loop, Loop *inner_loop)
+{
+    Face *temp_face = inner_loop->face_;  //准备删掉的面
+
+    // 把内环加到外环所在的面上
+    outter_loop->face_->AddLoop(inner_loop);
+    // 在面链表中删去temp_face
+    if(temp_face->next_face_ && temp_face->prev_face_){
+        temp_face->prev_face_->next_face_ = temp_face->next_face_;
+        temp_face->next_face_->prev_face_ = temp_face->prev_face_;
+    }
+    else if(temp_face->next_face_==NULL && temp_face->prev_face_!=NULL){
+        // 是尾节点
+        temp_face->prev_face_->next_face_ = NULL;
+    }
+    else if(temp_face->prev_face_==NULL && temp_face->next_face_!=NULL)
+    {
+        temp_face->next_face_->prev_face_ = NULL;
+        outter_loop->face_->solid_->faces_ = temp_face->next_face_;
+    }
+    else
+        outter_loop->face_->solid_->faces_ = NULL;
+
+    delete temp_face;
+    return;
+}
 
 //  x, y, z是扫成的方向偏量
 void EulerBrep::sweep(Face* face, float x, float y, float z)
@@ -364,6 +398,60 @@ void EulerBrep::Test()
 
 void EulerBrep::TestWithTwoHandle()
 {
+    QVector3D vertex_outter[4] = {
+        QVector3D(0, 0, 0),
+        QVector3D(3, 0, 0),
+        QVector3D(3, 5, 0),
+        QVector3D(0, 5, 0)
+    };//顶面的4个外顶点
+    QVector3D vertex_inner_1[4] = {
+        QVector3D(1, 1, 0),
+        QVector3D(2, 1, 0),
+        QVector3D(2, 2, 0),
+        QVector3D(1, 2, 0)
+    };  //第一个内环的四个顶点
+    QVector3D vertex_inner_2[4] = {
+        QVector3D(1, 3, 0),
+        QVector3D(2, 3, 0),
+        QVector3D(2, 4, 0),
+        QVector3D(1, 4, 0)
+    };
+
+    Solid* solid = mvfs(vertex_outter[0]);
+    Loop* big_loop = solid->faces_->loop_;
+
+    // 生成顶面外边界
+    mev(vertex_outter[0], vertex_outter[1], big_loop);
+    mev(vertex_outter[1], vertex_outter[2], big_loop);
+    mev(vertex_outter[2], vertex_outter[3], big_loop);
+    mef(vertex_outter[3], vertex_outter[0], big_loop);
+
+    // 此时存在两个face, big_loop在第一个face上，mef产生的完整的loop在第二个face上
+    // 第一个柄
+    Loop* temp_loop = solid->faces_->next_face_->loop_;  //顶面上的外环
+    mev(vertex_outter[0], vertex_inner_1[0], temp_loop);
+    mev(vertex_inner_1[0], vertex_inner_1[1], temp_loop);
+    temp_loop = kemr(vertex_outter[0], vertex_inner_1[0], temp_loop);  //temp_loop指向内环,但并没有和某个面建立关联
+    mev(vertex_inner_1[1], vertex_inner_1[2], temp_loop);
+    mev(vertex_inner_1[2], vertex_inner_1[3], temp_loop);
+
+    Loop* inner_loop = mef(vertex_inner_1[3], vertex_inner_1[0], temp_loop);// mef产生的环才是mef产生的新面上的环
+    kfmrh(big_loop, inner_loop); //?
+
+    //生成第二个柄
+    temp_loop = solid->faces_->next_face_->loop_;  //顶面上的外环
+    mev(vertex_outter[0], vertex_inner_2[0], temp_loop);
+    mev(vertex_inner_2[0], vertex_inner_2[1], temp_loop);
+    temp_loop = kemr(vertex_outter[0], vertex_inner_2[0], temp_loop);
+    mev(vertex_inner_2[1], vertex_inner_2[2], temp_loop);
+    mev(vertex_inner_2[2], vertex_inner_2[3], temp_loop);
+
+    Loop* inner_loop2 = mef(vertex_inner_2[3], vertex_inner_2[0], temp_loop);
+    kfmrh(big_loop, inner_loop2);
+
+    // 扫成
+    float dx = 0, dy = 0, dz = 3;
+    sweep(solid->faces_, dx, dy, dz);
 
 }
 

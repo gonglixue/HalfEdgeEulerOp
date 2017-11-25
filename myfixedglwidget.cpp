@@ -49,7 +49,7 @@ MyFixedGLWidget::~MyFixedGLWidget()
 void MyFixedGLWidget::ConstructBrep(QString brep_file_path)
 {
 #ifndef DIRECT_TEST
-    brep_.Test();
+    brep_.TestWithTwoHandle();
 #endif
 }
 
