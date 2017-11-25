@@ -36,6 +36,8 @@ protected:
 private:
     void draw();
     void drawTest();
+    void PrintBrep();
+
     QPoint last_pos_;
 
     EulerBrep brep_;

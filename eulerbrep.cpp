@@ -190,18 +190,20 @@ Loop* EulerBrep::kemr(HalfEdge *bridge_he1, Loop *loop)
     // 如果给定loop上只有he1 he2，是不能删除的它的
     // ...
 
-    // 把内边界的halfedge加到新环里
-    new_loop->AddHalfEdge(bridge_he1->next_he_);
-    HalfEdge* temp_he = bridge_he1->next_he_->next_he_;
-    while(temp_he)
-    {
-        if(temp_he == bridge_he2)
-            break;
-        temp_he->loop_ = new_loop;
-        temp_he = temp_he->next_he_;
+    if(bridge_he1->next_he_ != bridge_he2){
+        // 把内边界的halfedge加到新环里
+        new_loop->AddHalfEdge(bridge_he1->next_he_);
+        HalfEdge* temp_he = bridge_he1->next_he_->next_he_;
+        while(temp_he)
+        {
+            if(temp_he == bridge_he2)
+                break;
+            temp_he->loop_ = new_loop;
+            temp_he = temp_he->next_he_;
+        }
+        bridge_he1->next_he_->prev_he_ = bridge_he1->prev_he_;
+        bridge_he2->prev_he_->next_he_ = bridge_he1->next_he_;
     }
-    bridge_he1->next_he_->prev_he_ = bridge_he1->prev_he_;
-    bridge_he2->prev_he_->next_he_ = bridge_he1->next_he_;
 
     // 面添加一个inner loop
     loop->face_->AddLoop(new_loop);
@@ -318,40 +320,46 @@ void EulerBrep::kfmrh(Loop *outter_loop, Loop *inner_loop)
 //  x, y, z是扫成的方向偏量
 void EulerBrep::sweep(Face* face, float x, float y, float z)
 {
-    QVector3D v1, v2, first, last;
+    QVector3D v1, v2, first_up, prev_up;//prev_up是上一个扫成得到的点
     for(Loop* temp_loop = face->loop_; temp_loop!=NULL; temp_loop=temp_loop->next_loop_)
     {
         // 记录当前半边，和前后两个半边
-        HalfEdge *temp_he = temp_loop->halfedges_;
-        HalfEdge *next_he = temp_he->next_he_;
-        HalfEdge *prev_he = temp_he->prev_he_;
+        HalfEdge *temp_he = temp_loop->halfedges_; //用来记录当前halfedge
+        //HalfEdge *next_he = temp_he->next_he_;
+        HalfEdge *prev_he = temp_he->prev_he_;  //记录第一条halfedge的上一条halfedge，用来判断该loop是否遍历结束
         Vertex* vertex = temp_he->start_v_;  // 当前半边的起点
 
         v1 = vertex->position_;
-        first = last = v2 = v1 + QVector3D(x, y, z);
+        first_up = prev_up = v2 = v1 + QVector3D(x, y, z);
+        mev(v1, v2, temp_loop); //该loop上的第一个点的扫成
+
         if(temp_he == prev_he)
             temp_he = NULL;  // ？？ 说明这个环只有一对halfedge
         else{
-            temp_he = prev_he;
-            prev_he = temp_he->next_he_;
+            //temp_he = next_he;
+            //next_he = temp_he->next_he_;
+            temp_he = temp_he->next_he_;
         }
+
         while(temp_he)  // 对环上的每个half edge的起点进行偏移
         {
             Vertex* vertex = temp_he->start_v_;
-            v1 = vertex->position_;     // 原来的点坐标
+            v1 = vertex->position_;        // 原来的点坐标;当前需要操作的点
             v2 = v1 + QVector3D(x, y, z);  // 平移后的点
 
             mev(v1, v2, temp_loop);  // 在原来的点和新的点之间连一条边
-            // 创建一个新的扫成侧面
-            mef(last, v2, temp_loop);
-            if(temp_he == prev_he)
+            mef(prev_up, v2, temp_loop);  // last_up是上一个v1平移后的点
+            prev_up = v2;
+
+            if(temp_he == prev_he)  //最后一条halfedge
             {
-                mef(last, first, temp_loop);
-                temp_he = NULL;
+                mef(prev_up, first_up, temp_loop);
+                break;
             }
             else{
-                temp_he = next_he;
-                next_he = temp_he->next_he_;
+                //temp_he = next_he;
+                //next_he = temp_he->next_he_;
+                temp_he = temp_he->next_he_;
             }
         }
     }
@@ -417,8 +425,8 @@ void EulerBrep::TestWithTwoHandle()
         QVector3D(1, 4, 0)
     };
 
-    Solid* solid = mvfs(vertex_outter[0]);
-    Loop* big_loop = solid->faces_->loop_;
+    brep_solid_  = mvfs(vertex_outter[0]);
+    Loop* big_loop = brep_solid_->faces_->loop_;
 
     // 生成顶面外边界
     mev(vertex_outter[0], vertex_outter[1], big_loop);
@@ -428,10 +436,10 @@ void EulerBrep::TestWithTwoHandle()
 
     // 此时存在两个face, big_loop在第一个face上，mef产生的完整的loop在第二个face上
     // 第一个柄
-    Loop* temp_loop = solid->faces_->next_face_->loop_;  //顶面上的外环
+    Loop* temp_loop = brep_solid_->faces_->next_face_->loop_;  //顶面上的外环
     mev(vertex_outter[0], vertex_inner_1[0], temp_loop);
-    mev(vertex_inner_1[0], vertex_inner_1[1], temp_loop);
     temp_loop = kemr(vertex_outter[0], vertex_inner_1[0], temp_loop);  //temp_loop指向内环,但并没有和某个面建立关联
+    mev(vertex_inner_1[0], vertex_inner_1[1], temp_loop);
     mev(vertex_inner_1[1], vertex_inner_1[2], temp_loop);
     mev(vertex_inner_1[2], vertex_inner_1[3], temp_loop);
 
@@ -439,10 +447,10 @@ void EulerBrep::TestWithTwoHandle()
     kfmrh(big_loop, inner_loop); //?
 
     //生成第二个柄
-    temp_loop = solid->faces_->next_face_->loop_;  //顶面上的外环
+    temp_loop = brep_solid_->faces_->next_face_->loop_;  //顶面上的外环
     mev(vertex_outter[0], vertex_inner_2[0], temp_loop);
-    mev(vertex_inner_2[0], vertex_inner_2[1], temp_loop);
     temp_loop = kemr(vertex_outter[0], vertex_inner_2[0], temp_loop);
+    mev(vertex_inner_2[0], vertex_inner_2[1], temp_loop);
     mev(vertex_inner_2[1], vertex_inner_2[2], temp_loop);
     mev(vertex_inner_2[2], vertex_inner_2[3], temp_loop);
 
@@ -451,7 +459,7 @@ void EulerBrep::TestWithTwoHandle()
 
     // 扫成
     float dx = 0, dy = 0, dz = 3;
-    sweep(solid->faces_, dx, dy, dz);
+    sweep(brep_solid_->faces_, dx, dy, dz);
 
 }
 

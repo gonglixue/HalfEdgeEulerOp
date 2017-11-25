@@ -37,7 +37,7 @@ MyFixedGLWidget::MyFixedGLWidget(QWidget *parent)
 
 {
     tess_obj_ = gluNewTess();
-    ConstructBrep("");
+
     qDebug() << "MyFixedGLWidget::Constructor";
 }
 
@@ -63,11 +63,46 @@ QSize MyFixedGLWidget::sizeHint() const
     return QSize(512, 512);
 }
 
+void MyFixedGLWidget::PrintBrep()
+{
+
+    Face *faces = brep_.brep_solid_->faces_;
+    if(!faces)
+        qDebug() << "PrintBrep()::there is no faces do draw\n";
+    int faces_count = 0;
+    while(faces){
+        Loop* temp_loop = faces->loop_;
+
+
+        while(temp_loop)
+        {
+            qDebug() << "Face ("<<faces->face_id_<<") - Loop ("<<temp_loop->loop_id_<<")";
+            HalfEdge* half_edge = temp_loop->halfedges_;
+            Vertex* first_v = half_edge->start_v_;
+            qDebug() << "   Vertex:("<<first_v->position_.x() << "," << first_v->position_.y() << ","<<first_v->position_.z()<<")";
+            Vertex* temp_v = half_edge->next_he_->start_v_;
+            half_edge = half_edge->next_he_;
+            while(temp_v != first_v)
+            {
+                qDebug() << "   Vertex:("<< temp_v->position_.x() << "," << temp_v->position_.y() << ","<< temp_v->position_.z() <<")";
+                half_edge = half_edge->next_he_;
+                temp_v = half_edge->start_v_;
+            }
+            temp_loop = temp_loop->next_loop_;
+        }
+        faces = faces->next_face_;
+        faces_count++;
+    }
+    qDebug() << "finish print " << faces_count << " faces.";
+}
+
 void MyFixedGLWidget::initializeGL()
 {
+    ConstructBrep("");
+    qDebug() << "finish construct brep";
+    PrintBrep();
+
     qglClearColor(Qt::white);
-
-
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glShadeModel(GL_SMOOTH);
