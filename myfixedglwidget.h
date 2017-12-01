@@ -6,6 +6,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <QDebug>
+#include <QMatrix4x4>
 #include "eulerbrep.h"
 
 class MyFixedGLWidget:public QGLWidget
@@ -33,6 +34,7 @@ protected:
     QSize sizeHint() const;
     void mousePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
+    void wheelEvent(QWheelEvent *event);
 
 private:
     void draw();
@@ -53,6 +55,13 @@ private:
     float x_rot_;
     float y_rot_;
     float z_rot_;
+    int screen_width_;
+    int screen_height_;
+    QMatrix4x4 view_matrix_;
+    QMatrix4x4 model_matrix_;
+    float rot_degree_;
+    QVector3D rot_axis_;
+    float camera_pos_;
 };
 
 #endif // MYFIXEDGLWIDGET_H

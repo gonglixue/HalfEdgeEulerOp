@@ -481,6 +481,12 @@ void EulerBrep::ReadBrepFromFile(QString fn)
     Loop* temp_loop;
     Loop* temp_mef_loop;
 
+    float sum_x=0, sum_y=0, sum_z=0;
+    float min_x=1000, min_y=1000, min_z=1000;
+    float max_x=-1000, max_y=-1000, max_z=-1000;
+    int count_v = 0;
+    float length = 1.0;
+
     while(!in.atEnd())
     {
         line = in.readLine();
@@ -503,6 +509,30 @@ void EulerBrep::ReadBrepFromFile(QString fn)
             y = vertex_coords[1].toFloat();
             z = vertex_coords[2].toFloat();
             vertices_list.push_back(QVector3D(x, y, z));
+
+            sum_x+=x;
+            sum_y+=y;
+            sum_z+=z;
+
+            if(x>max_z) max_x = x;
+            if(y>max_y) max_y = y;
+            if(z>max_z) max_z = z;
+
+            if(x<min_x) min_x = x;
+            if(y<min_y) min_y = y;
+            if(z<min_z) min_z = z;
+
+            count_v++;
+            if(count_v == vert_num)
+            {
+                length = max_y - min_y;
+                QVector3D center_coord = QVector3D(sum_x/vert_num, sum_y/vert_num, sum_z/vert_num);
+                for(int i=0;i<vert_num;i++)
+                {
+                    vertices_list[i] = (vertices_list[i]-center_coord)/length;
+                }
+            }
+
         }
         else if(line[0] == 'h')
         {
@@ -557,7 +587,7 @@ void EulerBrep::ReadBrepFromFile(QString fn)
                 float dx = euler_command[1].toFloat();
                 float dy = euler_command[2].toFloat();
                 float dz = euler_command[3].toFloat();
-                sweep(brep_solid_->faces_, dx, dy, dz);
+                sweep(brep_solid_->faces_, dx/length, dy/length, dz/length);
             }
             else
                 qDebug() << "illegal euler command.";
@@ -567,7 +597,7 @@ void EulerBrep::ReadBrepFromFile(QString fn)
             qDebug() << "illegal euler command.";
         }
     }
-
+    file.close();
 }
 
 void EulerBrep::clean()

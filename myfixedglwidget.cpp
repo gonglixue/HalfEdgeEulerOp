@@ -29,6 +29,31 @@ void CALLBACK errorCallback(GLenum error_code)
     exit(0);
 }
 
+static void qNormalizeAngle(float &angle)
+{
+    while (angle < 0)
+        angle += 360 * 16;
+    while (angle > 360)
+        angle -= 360 * 16;
+}
+
+static QVector3D GetArcBallVector(int x_p, int y_p, int screen_width, int screen_height)
+{
+    // arcball
+    // 把屏幕坐标转为[-1, 1]
+    float x = 2*x_p/screen_width - 1;
+    float y = -(2*y_p/screen_height - 1);
+
+    QVector3D P = QVector3D(x, y, 0);
+    float OP_squared = P.x()*P.x() + P.y()*P.y();
+    if(OP_squared <= 1)
+        P.setZ(sqrtf(1.0f - OP_squared));
+    else
+        P.normalize();
+
+    return P;
+}
+
 MyFixedGLWidget::MyFixedGLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
       x_rot_(0),
@@ -37,8 +62,12 @@ MyFixedGLWidget::MyFixedGLWidget(QWidget *parent)
 
 {
     tess_obj_ = gluNewTess();
-
+    model_matrix_.setToIdentity();
+    //model_matrix_.translate(1, -1, -3.0);
     qDebug() << "MyFixedGLWidget::Constructor";
+    rot_degree_ = 0;
+    rot_axis_ = QVector3D(1, 1, 1);
+    camera_pos_ = -5;
 }
 
 MyFixedGLWidget::~MyFixedGLWidget()
@@ -111,7 +140,7 @@ void MyFixedGLWidget::initializeGL()
     PrintBrep();
 #endif
 
-    qglClearColor(Qt::white);
+    glClearColor(0.6, 0.76, 0.78, 1.0);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glShadeModel(GL_SMOOTH);
@@ -145,16 +174,21 @@ void MyFixedGLWidget::paintGL()
 
     //glLoadIdentity();
 
+    //glRotatef(rot_degree_, rot_axis_.x(), rot_axis_.y(), rot_axis_.z());
+
     glPushMatrix();
-    glTranslatef(-1, -1, -3.0);
-    glRotatef(x_rot_, 1.0f, 0.0f, 0.0f);
-    glRotatef(y_rot_, 0.0f, 1.0f, 0.0f);
-    glRotatef(z_rot_, 0.0f, 0.0f, 1.0f);
+    glTranslatef(0, 0, 0);
+    glRotatef(x_rot_, 1, 0, 0);
+    glRotatef(y_rot_, 0, 1, 0);
+    glRotatef(z_rot_, 0, 0, 1);
 
     // 光源位置
     static GLfloat light_position[4] = {2, 2, 2, 1.0};
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+
     draw();
+
     glPopMatrix();
     //glFlush();
 
@@ -164,6 +198,8 @@ void MyFixedGLWidget::resizeGL(int width, int height)
 {
     int side = qMin(width, height);
     glViewport((width- side)/2, (height-side)/2, side, side);
+    screen_height_ = height;
+    screen_width_ = width;
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -175,27 +211,60 @@ void MyFixedGLWidget::resizeGL(int width, int height)
 #endif
 
     glMatrixMode(GL_MODELVIEW);
+
     glLoadIdentity();
-    gluLookAt(0, 0, -15, 0, 0, 0, 0, 1, 0);
+    gluLookAt(0, 0, camera_pos_, 0, 0, 0, 0, 1, 0);
 
 }
 
 void MyFixedGLWidget::mousePressEvent(QMouseEvent *event)
 {
     last_pos_ = event->pos();
+    //qDebug() << "press: " << last_pos_;
 }
 
 void MyFixedGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    int dx = event->x() - last_pos_.x();
-    int dy = event->y() - last_pos_.y();
+
+    // arcball
     if(event->buttons() & Qt::LeftButton){
-        setXRotation(x_rot_ + 8*dy);
-        setYRotation(y_rot_ + 8*dx);
+//        QVector3D va = GetArcBallVector(last_pos_.x(), last_pos_.y(), 512, 512);
+//        QVector3D vb = GetArcBallVector(event->x(), event->y(), 512, 512);
+
+//        float angle = acosf(qMin(1.0f, QVector3D::dotProduct(va, vb)));
+//        QVector3D axis_in_camera_coord = QVector3D::crossProduct(va, vb);
+//        QMatrix4x4 camera2object = (view_matrix_* model_matrix_).inverted();
+
+//        QVector4D axis_in_object_coord = camera2object * axis_in_camera_coord;
+//        model_matrix_.rotate(qRadiansToDegrees(angle), axis_in_object_coord.toVector3D());
+//        rot_degree_ = qRadiansToDegrees(angle);
+//        rot_axis_ = axis_in_object_coord.toVector3D();
+        //glMatrixMode(GL_MODELVIEW);
+        //glRotatef(angle, axis_in_object_coord.x(), axis_in_object_coord.y(), axis_in_object_coord.z());
+
+        int dx = event->x() - last_pos_.x();
+        int dy = event->y() - last_pos_.y();
+        if(event->buttons() & Qt::LeftButton){
+            setXRotation(x_rot_ + 8*dy);
+            setYRotation(y_rot_ + 8*dx);
+        }
+
+        //qDebug() << "move";
+        last_pos_ = event->pos();
+        updateGL();
     }
+}
 
+void MyFixedGLWidget::wheelEvent(QWheelEvent *event)
+{
+    float forward_offset = event->delta()/100.0f;
+    camera_pos_ += forward_offset;
 
-    last_pos_ = event->pos();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(0, 0, camera_pos_, 0, 0, 0, 0, 1, 0);
+
+    updateGL();
 }
 
 void MyFixedGLWidget::draw()
@@ -217,10 +286,6 @@ void MyFixedGLWidget::draw()
         // 遍历loop上的每个点
         while(temp_loop)
         {
-//            int rand_r = 255 * rand()/RAND_MAX;
-//            int rand_g = 255 * rand()/RAND_MAX;
-//            int rand_b = 255 * rand()/RAND_MAX;
-//            glColor3b(rand_r, rand_g, rand_b);
             glColor3b(255, 0, 0);
             HalfEdge* half_edge = temp_loop->halfedges_;
             Vertex* start_v = half_edge->start_v_;
@@ -283,13 +348,7 @@ void MyFixedGLWidget::drawTest()
     glEnd();
 }
 
-static void qNormalizeAngle(float &angle)
-{
-    while (angle < 0)
-        angle += 360 * 16;
-    while (angle > 360)
-        angle -= 360 * 16;
-}
+
 
 void MyFixedGLWidget::setXRotation(float angle)
 {
