@@ -27,8 +27,10 @@ bool Solid::AddFace(Face *new_face)
 
         while(temp_face->next_face_ != NULL){
             temp_face = temp_face->next_face_;
+#ifdef DERECT_TEST
             int debug_id = temp_face->face_id_;
             printf("debug id%d\n", debug_id);
+#endif
         }
 
         temp_face->next_face_ = new_face;

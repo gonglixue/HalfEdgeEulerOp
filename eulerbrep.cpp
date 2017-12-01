@@ -479,6 +479,7 @@ void EulerBrep::ReadBrepFromFile(QString fn)
 
     Loop* big_loop;
     Loop* temp_loop;
+    Loop* temp_mef_loop;
 
     while(!in.atEnd())
     {
@@ -490,43 +491,80 @@ void EulerBrep::ReadBrepFromFile(QString fn)
             qDebug() << line;
         else if(line[0] == 'n')
         {
-            line.remove(0, 1); // remove "n "
+            line.remove(0, 2); // remove "n "
             vert_num = line.toInt();
             qDebug() << "vertex num: " << vert_num;
         }
         else if(line[0] == 'v')
         {
-            line.remove(0, 1); // remove "v "
+            line.remove(0, 2); // remove "v "
             QStringList vertex_coords = line.split(' ', QString::SkipEmptyParts);
             x = vertex_coords[0].toFloat();
             y = vertex_coords[1].toFloat();
             z = vertex_coords[2].toFloat();
             vertices_list.push_back(QVector3D(x, y, z));
         }
+        else if(line[0] == 'h')
+        {
+            QStringList command = line.split(' ', QString::SkipEmptyParts);
+            if(command[1] == "handle")
+            {
+                qDebug() << "begin to construct handle " << command[2];
+                temp_loop = brep_solid_->faces_->next_face_->loop_;
+            }
+            else if(command[1] == "sweep"){
+                qDebug() << "begin to sweep " << command[2];
+
+            }
+        }
         else if(line[0] == 'e')
         {
-            line.remove(0, 1);  // remove "e_"
+            line.remove(0, 2);  // remove "e_"
             QStringList euler_command = line.split(' ', QString::SkipEmptyParts);
-            switch (euler_command[0]) {
-            case "mvfs":
+            //qDebug() << "test command[0]:" << euler_command[0];
+            if(euler_command[0] == "mvfs"){
                 int ind = euler_command[1].toInt();
                 brep_solid_ = mvfs(vertices_list[ind]);
-                qDebug() << "mvfs" << vertices_list[ind];
-                break;
-            case "mev":
-
-                break;
-            case "kemr":
-                break;
-            case "mef":
-                break;
-            case "kfmrh":
-                break;
-            case "sweep":
-
-            default:
-                break;
+                big_loop = brep_solid_->faces_->loop_;
+                temp_loop = big_loop;
+                qDebug() << "mvfs: " << vertices_list[ind];
             }
+            else if(euler_command[0] == "mev"){
+                int v1_ind = euler_command[1].toInt();
+                int v2_ind = euler_command[2].toInt();
+                mev(vertices_list[v1_ind], vertices_list[v2_ind], temp_loop);
+                qDebug() << "mev: " << vertices_list[v1_ind] << " " << vertices_list[v2_ind] << " in loop: " << temp_loop->loop_id_;
+
+            }
+            else if(euler_command[0] == "kemr"){
+                int v1_ind = euler_command[1].toInt();
+                int v2_ind = euler_command[2].toInt();
+                temp_loop = kemr(vertices_list[v1_ind], vertices_list[v2_ind], temp_loop);
+
+            }
+            else if(euler_command[0] ==  "mef"){
+                int v1_ind = euler_command[1].toInt();
+                int v2_ind = euler_command[2].toInt();
+                temp_mef_loop = mef(vertices_list[v1_ind], vertices_list[v2_ind], temp_loop);
+                qDebug() << "mef: " << vertices_list[v1_ind] << " " << vertices_list[v2_ind] << " in loop: " << temp_loop->loop_id_;
+
+            }
+            else if(euler_command[0] ==  "kfmrh"){
+                qDebug() << "kfmrh: " << big_loop->loop_id_ << " " << temp_mef_loop->loop_id_;
+                kfmrh(big_loop, temp_mef_loop);
+            }
+            else if(euler_command[0] ==  "sweep"){
+                float dx = euler_command[1].toFloat();
+                float dy = euler_command[2].toFloat();
+                float dz = euler_command[3].toFloat();
+                sweep(brep_solid_->faces_, dx, dy, dz);
+            }
+            else
+                qDebug() << "illegal euler command.";
+        }
+
+        else{
+            qDebug() << "illegal euler command.";
         }
     }
 

@@ -48,8 +48,10 @@ MyFixedGLWidget::~MyFixedGLWidget()
 
 void MyFixedGLWidget::ConstructBrep(QString brep_file_path)
 {
-#ifndef DIRECT_TEST
+#ifdef DIRECT_TEST
     brep_.TestWithTwoHandle();
+#else
+    brep_.ReadBrepFromFile(brep_file_path);
 #endif
 }
 
@@ -65,11 +67,16 @@ QSize MyFixedGLWidget::sizeHint() const
 
 void MyFixedGLWidget::PrintBrep()
 {
-
+    if(!brep_.brep_solid_)
+    {
+        qDebug() << "PrintBrep()::brep_solid_ is empty.";
+        return;
+    }
     Face *faces = brep_.brep_solid_->faces_;
     if(!faces)
         qDebug() << "PrintBrep()::there is no faces do draw\n";
     int faces_count = 0;
+    qDebug() << "Begin printing...";
     while(faces){
         Loop* temp_loop = faces->loop_;
 
@@ -98,9 +105,11 @@ void MyFixedGLWidget::PrintBrep()
 
 void MyFixedGLWidget::initializeGL()
 {
+#ifdef DIRECT_TEST
     ConstructBrep("");
     qDebug() << "finish construct brep";
     PrintBrep();
+#endif
 
     qglClearColor(Qt::white);
     glEnable(GL_DEPTH_TEST);
@@ -191,7 +200,8 @@ void MyFixedGLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void MyFixedGLWidget::draw()
 {
-    //qglColor(Qt::red);
+    if(brep_.brep_solid_){
+
     Face* faces = brep_.brep_solid_->faces_;
     int index = 0;
     if(!faces)
@@ -231,6 +241,8 @@ void MyFixedGLWidget::draw()
         faces = faces->next_face_;
         index++;
     }
+
+    }  // if(brep_.brep_solid_)
 }
 
 void MyFixedGLWidget::drawTest()

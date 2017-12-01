@@ -13,7 +13,7 @@ class MyFixedGLWidget:public QGLWidget
     Q_OBJECT
 public:
     explicit MyFixedGLWidget(QWidget *parent = 0);
-    void ConstructBrep(QString brep_file_path);
+
     ~MyFixedGLWidget();
 signals:
     void xRotationChanged(float angle);
@@ -22,6 +22,7 @@ signals:
 public slots:
     void setXRotation(float angle);
     void setYRotation(float angle);
+    void ConstructBrep(QString brep_file_path);
 
 protected:
     void initializeGL();

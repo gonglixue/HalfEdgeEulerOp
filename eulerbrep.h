@@ -6,6 +6,7 @@
 #include <QVector3D>
 #include <QFile>
 #include <QString>
+#include <QDebug>
 
 class EulerBrep
 {
