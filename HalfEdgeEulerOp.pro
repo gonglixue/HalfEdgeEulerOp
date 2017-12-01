@@ -33,7 +33,6 @@ SOURCES += \
     loop.cpp \
     edge.cpp \
     halfedge.cpp \
-    mycamera.cpp \
     myfixedglwidget.cpp
 
 HEADERS += \
@@ -45,7 +44,6 @@ HEADERS += \
     loop.h \
     edge.h \
     halfedge.h \
-    mycamera.h \
     myfixedglwidget.h
 
 FORMS += \

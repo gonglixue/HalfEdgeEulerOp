@@ -4,6 +4,8 @@
 #include <iostream>
 #include "solid.h"
 #include <QVector3D>
+#include <QFile>
+#include <QString>
 
 class EulerBrep
 {
@@ -34,6 +36,7 @@ public:
 
     void Test();
     void TestWithTwoHandle();
+    void ReadBrepFromFile(QString fn);
 
     Solid* brep_solid_;
 };

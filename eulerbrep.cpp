@@ -1,4 +1,6 @@
 ﻿#include "eulerbrep.h"
+#include <QStringList>
+#include <QTextStream>
 
 EulerBrep::EulerBrep()
 {
@@ -407,22 +409,22 @@ void EulerBrep::Test()
 void EulerBrep::TestWithTwoHandle()
 {
     QVector3D vertex_outter[4] = {
-        QVector3D(0, 0, 0),
-        QVector3D(3, 0, 0),
-        QVector3D(3, 5, 0),
-        QVector3D(0, 5, 0)
+        QVector3D(0, 0, 0),  // 0
+        QVector3D(3, 0, 0),  // 1
+        QVector3D(3, 5, 0),  // 2
+        QVector3D(0, 5, 0)   // 3
     };//顶面的4个外顶点
     QVector3D vertex_inner_1[4] = {
-        QVector3D(1, 1, 0),
-        QVector3D(2, 1, 0),
-        QVector3D(2, 2, 0),
-        QVector3D(1, 2, 0)
+        QVector3D(1, 1, 0),  // 4
+        QVector3D(2, 1, 0), // 5
+        QVector3D(2, 2, 0), // 6
+        QVector3D(1, 2, 0)  // 7
     };  //第一个内环的四个顶点
     QVector3D vertex_inner_2[4] = {
-        QVector3D(1, 3, 0),
-        QVector3D(2, 3, 0),
-        QVector3D(2, 4, 0),
-        QVector3D(1, 4, 0)
+        QVector3D(1, 3, 0), // 8
+        QVector3D(2, 3, 0), // 9
+        QVector3D(2, 4, 0), // 10
+        QVector3D(1, 4, 0)  // 11
     };
 
     brep_solid_  = mvfs(vertex_outter[0]);
@@ -460,6 +462,73 @@ void EulerBrep::TestWithTwoHandle()
     // 扫成
     float dx = 0, dy = 0, dz = 3;
     sweep(brep_solid_->faces_, dx, dy, dz);
+
+}
+
+void EulerBrep::ReadBrepFromFile(QString fn)
+{
+    QFile file(fn);
+    if(!file.open(QIODevice::ReadOnly))
+        exit(-1);
+
+    QTextStream in(&file);
+    QString line;
+    std::vector<QVector3D> vertices_list;
+    int vert_num;
+    float x, y, z;
+
+    Loop* big_loop;
+    Loop* temp_loop;
+
+    while(!in.atEnd())
+    {
+        line = in.readLine();
+        if(line.isEmpty()){
+            continue;
+        }
+        if(line[0] == '#')
+            qDebug() << line;
+        else if(line[0] == 'n')
+        {
+            line.remove(0, 1); // remove "n "
+            vert_num = line.toInt();
+            qDebug() << "vertex num: " << vert_num;
+        }
+        else if(line[0] == 'v')
+        {
+            line.remove(0, 1); // remove "v "
+            QStringList vertex_coords = line.split(' ', QString::SkipEmptyParts);
+            x = vertex_coords[0].toFloat();
+            y = vertex_coords[1].toFloat();
+            z = vertex_coords[2].toFloat();
+            vertices_list.push_back(QVector3D(x, y, z));
+        }
+        else if(line[0] == 'e')
+        {
+            line.remove(0, 1);  // remove "e_"
+            QStringList euler_command = line.split(' ', QString::SkipEmptyParts);
+            switch (euler_command[0]) {
+            case "mvfs":
+                int ind = euler_command[1].toInt();
+                brep_solid_ = mvfs(vertices_list[ind]);
+                qDebug() << "mvfs" << vertices_list[ind];
+                break;
+            case "mev":
+
+                break;
+            case "kemr":
+                break;
+            case "mef":
+                break;
+            case "kfmrh":
+                break;
+            case "sweep":
+
+            default:
+                break;
+            }
+        }
+    }
 
 }
 
