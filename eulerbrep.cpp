@@ -1,4 +1,6 @@
 ﻿#include "eulerbrep.h"
+#include <QStringList>
+#include <QTextStream>
 
 EulerBrep::EulerBrep()
 {
@@ -87,6 +89,7 @@ HalfEdge* EulerBrep::mev(float x1, float y1, float z1,
     solid->AddEdge(edge);
     solid->AddVertex(new_vertex);
 
+    std::cout << "success make he: given("<<x1<<","<<y1<<","<<z1<<")"<<" and new ("<<x2<<","<<y2<<","<<z2<<")\n";
     return he1;
 
 }
@@ -189,18 +192,20 @@ Loop* EulerBrep::kemr(HalfEdge *bridge_he1, Loop *loop)
     // 如果给定loop上只有he1 he2，是不能删除的它的
     // ...
 
-    // 把内边界的halfedge加到新环里
-    new_loop->AddHalfEdge(bridge_he1->next_he_);
-    HalfEdge* temp_he = bridge_he1->next_he_->next_he_;
-    while(temp_he)
-    {
-        if(temp_he == bridge_he2)
-            break;
-        temp_he->loop_ = new_loop;
-        temp_he = temp_he->next_he_;
+    if(bridge_he1->next_he_ != bridge_he2){
+        // 把内边界的halfedge加到新环里
+        new_loop->AddHalfEdge(bridge_he1->next_he_);
+        HalfEdge* temp_he = bridge_he1->next_he_->next_he_;
+        while(temp_he)
+        {
+            if(temp_he == bridge_he2)
+                break;
+            temp_he->loop_ = new_loop;
+            temp_he = temp_he->next_he_;
+        }
+        bridge_he1->next_he_->prev_he_ = bridge_he1->prev_he_;
+        bridge_he2->prev_he_->next_he_ = bridge_he1->next_he_;
     }
-    bridge_he1->next_he_->prev_he_ = bridge_he1->prev_he_;
-    bridge_he2->prev_he_->next_he_ = bridge_he1->next_he_;
 
     // 面添加一个inner loop
     loop->face_->AddLoop(new_loop);
@@ -279,63 +284,103 @@ Loop* EulerBrep::kemr(float x1, float y1, float z1, float x2, float y2, float z2
     }
 }
 
+Loop* EulerBrep::kemr(QVector3D &v1, QVector3D &v2, Loop *loop)
+{
+    return kemr(v1.x(), v1.y(), v1.z(),
+                v2.x(), v2.y(), v2.z(),
+                loop);
+}
+
+// 删除一个面，把内环加到外环所在的面上
+void EulerBrep::kfmrh(Loop *outter_loop, Loop *inner_loop)
+{
+    Face *temp_face = inner_loop->face_;  //准备删掉的面
+
+    // 把内环加到外环所在的面上
+    outter_loop->face_->AddLoop(inner_loop);
+    // 在面链表中删去temp_face
+    if(temp_face->next_face_ && temp_face->prev_face_){
+        temp_face->prev_face_->next_face_ = temp_face->next_face_;
+        temp_face->next_face_->prev_face_ = temp_face->prev_face_;
+    }
+    else if(temp_face->next_face_==NULL && temp_face->prev_face_!=NULL){
+        // 是尾节点
+        temp_face->prev_face_->next_face_ = NULL;
+    }
+    else if(temp_face->prev_face_==NULL && temp_face->next_face_!=NULL)
+    {
+        temp_face->next_face_->prev_face_ = NULL;
+        outter_loop->face_->solid_->faces_ = temp_face->next_face_;
+    }
+    else
+        outter_loop->face_->solid_->faces_ = NULL;
+
+    delete temp_face;
+    return;
+}
 
 //  x, y, z是扫成的方向偏量
 void EulerBrep::sweep(Face* face, float x, float y, float z)
 {
-    QVector3D v1, v2, first, last;
+    QVector3D v1, v2, first_up, prev_up;//prev_up是上一个扫成得到的点
     for(Loop* temp_loop = face->loop_; temp_loop!=NULL; temp_loop=temp_loop->next_loop_)
     {
         // 记录当前半边，和前后两个半边
-        HalfEdge *temp_he = temp_loop->halfedges_;
-        HalfEdge *next_he = temp_he->next_he_;
-        HalfEdge *prev_he = temp_he->prev_he_;
+        HalfEdge *temp_he = temp_loop->halfedges_; //用来记录当前halfedge
+        //HalfEdge *next_he = temp_he->next_he_;
+        HalfEdge *prev_he = temp_he->prev_he_;  //记录第一条halfedge的上一条halfedge，用来判断该loop是否遍历结束
         Vertex* vertex = temp_he->start_v_;  // 当前半边的起点
 
         v1 = vertex->position_;
-        first = last = v2 = v1 + QVector3D(x, y, z);
+        first_up = prev_up = v2 = v1 + QVector3D(x, y, z);
+        mev(v1, v2, temp_loop); //该loop上的第一个点的扫成
+
         if(temp_he == prev_he)
             temp_he = NULL;  // ？？ 说明这个环只有一对halfedge
         else{
-            temp_he = prev_he;
-            prev_he = temp_he->next_he_;
+            //temp_he = next_he;
+            //next_he = temp_he->next_he_;
+            temp_he = temp_he->next_he_;
         }
+
         while(temp_he)  // 对环上的每个half edge的起点进行偏移
         {
             Vertex* vertex = temp_he->start_v_;
-            v1 = vertex->position_;     // 原来的点坐标
+            v1 = vertex->position_;        // 原来的点坐标;当前需要操作的点
             v2 = v1 + QVector3D(x, y, z);  // 平移后的点
 
             mev(v1, v2, temp_loop);  // 在原来的点和新的点之间连一条边
-            // 创建一个新的扫成侧面
-            mef(last, v2, temp_loop);
-            if(temp_he == prev_he)
+            mef(prev_up, v2, temp_loop);  // last_up是上一个v1平移后的点
+            prev_up = v2;
+
+            if(temp_he == prev_he)  //最后一条halfedge
             {
-                mef(last, first, temp_loop);
-                temp_he = NULL;
+                mef(prev_up, first_up, temp_loop);
+                break;
             }
             else{
-                temp_he = next_he;
-                next_he = temp_he->next_he_;
+                //temp_he = next_he;
+                //next_he = temp_he->next_he_;
+                temp_he = temp_he->next_he_;
             }
         }
     }
 }
 
+// 立方体
 void EulerBrep::Test()
 {
-
     QVector3D vertices_outer[4] = {QVector3D(0.0, 0.0, 0.0), QVector3D(3.0, 0.0, 0.0), QVector3D(3.0, 3.0, 0.0), QVector3D(0.0, 3.0, 0.0)};
     QVector3D vertices_inner[4] = {QVector3D(1.0, 1.0, 0.0), QVector3D(2.0, 1.0, 0.0), QVector3D(2.0, 2.0, 0.0), QVector3D(1.0, 2.0, 0.0)};
     QVector3D cube_vertices[8] = {
         QVector3D(0,0,0),
-        QVector3D(3,0,0),
-        QVector3D(3,3,0),
-        QVector3D(0,3,0),
-        QVector3D(0,0,3),
-        QVector3D(3,0,3),
-        QVector3D(3,3,3),
-        QVector3D(0,3,3)
+        QVector3D(2,0,0),
+        QVector3D(2,2,0),
+        QVector3D(0,2,0),
+        QVector3D(0,0,2),
+        QVector3D(2,0,2),
+        QVector3D(2,2,2),
+        QVector3D(0,2,2)
     };
     // 创建第一个点, 以及生成一个大环，这个大环在一开始时并无特殊含义. mef之后产生的环才是组成这个面的环
     brep_solid_ = this->mvfs(vertices_outer[0]);
@@ -358,6 +403,201 @@ void EulerBrep::Test()
 
     mef(cube_vertices[7], cube_vertices[4], big_loop);
 
+    std::cout << "brep::Test() finish.\n";
+}
+
+void EulerBrep::TestWithTwoHandle()
+{
+    QVector3D vertex_outter[4] = {
+        QVector3D(0, 0, 0),  // 0
+        QVector3D(3, 0, 0),  // 1
+        QVector3D(3, 5, 0),  // 2
+        QVector3D(0, 5, 0)   // 3
+    };//顶面的4个外顶点
+    QVector3D vertex_inner_1[4] = {
+        QVector3D(1, 1, 0),  // 4
+        QVector3D(2, 1, 0), // 5
+        QVector3D(2, 2, 0), // 6
+        QVector3D(1, 2, 0)  // 7
+    };  //第一个内环的四个顶点
+    QVector3D vertex_inner_2[4] = {
+        QVector3D(1, 3, 0), // 8
+        QVector3D(2, 3, 0), // 9
+        QVector3D(2, 4, 0), // 10
+        QVector3D(1, 4, 0)  // 11
+    };
+
+    brep_solid_  = mvfs(vertex_outter[0]);
+    Loop* big_loop = brep_solid_->faces_->loop_;
+
+    // 生成顶面外边界
+    mev(vertex_outter[0], vertex_outter[1], big_loop);
+    mev(vertex_outter[1], vertex_outter[2], big_loop);
+    mev(vertex_outter[2], vertex_outter[3], big_loop);
+    mef(vertex_outter[3], vertex_outter[0], big_loop);
+
+    // 此时存在两个face, big_loop在第一个face上，mef产生的完整的loop在第二个face上
+    // 第一个柄
+    Loop* temp_loop = brep_solid_->faces_->next_face_->loop_;  //顶面上的外环
+    mev(vertex_outter[0], vertex_inner_1[0], temp_loop);
+    temp_loop = kemr(vertex_outter[0], vertex_inner_1[0], temp_loop);  //temp_loop指向内环,但并没有和某个面建立关联
+    mev(vertex_inner_1[0], vertex_inner_1[1], temp_loop);
+    mev(vertex_inner_1[1], vertex_inner_1[2], temp_loop);
+    mev(vertex_inner_1[2], vertex_inner_1[3], temp_loop);
+
+    Loop* inner_loop = mef(vertex_inner_1[3], vertex_inner_1[0], temp_loop);// mef产生的环才是mef产生的新面上的环
+    kfmrh(big_loop, inner_loop); //?
+
+    //生成第二个柄
+    temp_loop = brep_solid_->faces_->next_face_->loop_;  //顶面上的外环
+    mev(vertex_outter[0], vertex_inner_2[0], temp_loop);
+    temp_loop = kemr(vertex_outter[0], vertex_inner_2[0], temp_loop);
+    mev(vertex_inner_2[0], vertex_inner_2[1], temp_loop);
+    mev(vertex_inner_2[1], vertex_inner_2[2], temp_loop);
+    mev(vertex_inner_2[2], vertex_inner_2[3], temp_loop);
+
+    Loop* inner_loop2 = mef(vertex_inner_2[3], vertex_inner_2[0], temp_loop);
+    kfmrh(big_loop, inner_loop2);
+
+    // 扫成
+    float dx = 0, dy = 0, dz = 3;
+    sweep(brep_solid_->faces_, dx, dy, dz);
+
+}
+
+void EulerBrep::ReadBrepFromFile(QString fn)
+{
+    QFile file(fn);
+    if(!file.open(QIODevice::ReadOnly))
+        exit(-1);
+
+    QTextStream in(&file);
+    QString line;
+    std::vector<QVector3D> vertices_list;
+    int vert_num;
+    float x, y, z;
+
+    Loop* big_loop;
+    Loop* temp_loop;
+    Loop* temp_mef_loop;
+
+    float sum_x=0, sum_y=0, sum_z=0;
+    float min_x=1000, min_y=1000, min_z=1000;
+    float max_x=-1000, max_y=-1000, max_z=-1000;
+    int count_v = 0;
+    float length = 1.0;
+
+    while(!in.atEnd())
+    {
+        line = in.readLine();
+        if(line.isEmpty()){
+            continue;
+        }
+        if(line[0] == '#')
+            qDebug() << line;
+        else if(line[0] == 'n')
+        {
+            line.remove(0, 2); // remove "n "
+            vert_num = line.toInt();
+            qDebug() << "vertex num: " << vert_num;
+        }
+        else if(line[0] == 'v')
+        {
+            line.remove(0, 2); // remove "v "
+            QStringList vertex_coords = line.split(' ', QString::SkipEmptyParts);
+            x = vertex_coords[0].toFloat();
+            y = vertex_coords[1].toFloat();
+            z = vertex_coords[2].toFloat();
+            vertices_list.push_back(QVector3D(x, y, z));
+
+            sum_x+=x;
+            sum_y+=y;
+            sum_z+=z;
+
+            if(x>max_z) max_x = x;
+            if(y>max_y) max_y = y;
+            if(z>max_z) max_z = z;
+
+            if(x<min_x) min_x = x;
+            if(y<min_y) min_y = y;
+            if(z<min_z) min_z = z;
+
+            count_v++;
+            if(count_v == vert_num)
+            {
+                length = max_y - min_y;
+                QVector3D center_coord = QVector3D(sum_x/vert_num, sum_y/vert_num, sum_z/vert_num);
+                for(int i=0;i<vert_num;i++)
+                {
+                    vertices_list[i] = (vertices_list[i]-center_coord)/length;
+                }
+            }
+
+        }
+        else if(line[0] == 'h')
+        {
+            QStringList command = line.split(' ', QString::SkipEmptyParts);
+            if(command[1] == "handle")
+            {
+                qDebug() << "begin to construct handle " << command[2];
+                temp_loop = brep_solid_->faces_->next_face_->loop_;
+            }
+            else if(command[1] == "sweep"){
+                qDebug() << "begin to sweep " << command[2];
+
+            }
+        }
+        else if(line[0] == 'e')
+        {
+            line.remove(0, 2);  // remove "e_"
+            QStringList euler_command = line.split(' ', QString::SkipEmptyParts);
+            //qDebug() << "test command[0]:" << euler_command[0];
+            if(euler_command[0] == "mvfs"){
+                int ind = euler_command[1].toInt();
+                brep_solid_ = mvfs(vertices_list[ind]);
+                big_loop = brep_solid_->faces_->loop_;
+                temp_loop = big_loop;
+                qDebug() << "mvfs: " << vertices_list[ind];
+            }
+            else if(euler_command[0] == "mev"){
+                int v1_ind = euler_command[1].toInt();
+                int v2_ind = euler_command[2].toInt();
+                mev(vertices_list[v1_ind], vertices_list[v2_ind], temp_loop);
+                qDebug() << "mev: " << vertices_list[v1_ind] << " " << vertices_list[v2_ind] << " in loop: " << temp_loop->loop_id_;
+
+            }
+            else if(euler_command[0] == "kemr"){
+                int v1_ind = euler_command[1].toInt();
+                int v2_ind = euler_command[2].toInt();
+                temp_loop = kemr(vertices_list[v1_ind], vertices_list[v2_ind], temp_loop);
+
+            }
+            else if(euler_command[0] ==  "mef"){
+                int v1_ind = euler_command[1].toInt();
+                int v2_ind = euler_command[2].toInt();
+                temp_mef_loop = mef(vertices_list[v1_ind], vertices_list[v2_ind], temp_loop);
+                qDebug() << "mef: " << vertices_list[v1_ind] << " " << vertices_list[v2_ind] << " in loop: " << temp_loop->loop_id_;
+
+            }
+            else if(euler_command[0] ==  "kfmrh"){
+                qDebug() << "kfmrh: " << big_loop->loop_id_ << " " << temp_mef_loop->loop_id_;
+                kfmrh(big_loop, temp_mef_loop);
+            }
+            else if(euler_command[0] ==  "sweep"){
+                float dx = euler_command[1].toFloat();
+                float dy = euler_command[2].toFloat();
+                float dz = euler_command[3].toFloat();
+                sweep(brep_solid_->faces_, dx/length, dy/length, dz/length);
+            }
+            else
+                qDebug() << "illegal euler command.";
+        }
+
+        else{
+            qDebug() << "illegal euler command.";
+        }
+    }
+    file.close();
 }
 
 void EulerBrep::clean()

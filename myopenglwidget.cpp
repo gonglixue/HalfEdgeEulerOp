@@ -15,10 +15,6 @@ void MyOpenGLWidget::ConstructBrep(QString brep_file_path)
 {
 #ifdef DIRECT_TEST
     euler_.Test();
-    Face* faces = euler_.brep_solid_->faces_;
-    int index;
-    while (faces) {
 
-    }
 #endif
 }

@@ -1,0 +1,42 @@
+# number of vertices: 12
+n 12
+# 4 outer vertex in top-face
+v 0 0 0
+v 30 0 0
+v 30 50 0
+v 0 50 0
+# 4 inner vertex in first handle
+v 5 5 0
+v 25 5 0
+v 25 25 0
+v 5 25 0
+# 4 inner vertex in second handle
+v 10 30 0
+v 20 30 0
+v 20 40 0
+v 10 40 0
+# begin euleroperation
+e_mvfs 0
+e_mev 0 1
+e_mev 1 2
+e_mev 2 3
+e_mef 3 0
+# begin construct first inner loop. switch current loop
+hint handle 1
+e_mev 0 4
+e_kemr 0 4
+e_mev 4 5
+e_mev 5 6
+e_mev 6 7
+e_mef 7 4
+e_kfmrh
+hint handle 2
+e_mev 0 8
+e_kemr 0 8
+e_mev 8 9
+e_mev 9 10
+e_mev 10 11
+e_mef 11 8
+e_kfmrh
+hint sweep 1
+e_sweep 0 0 30
